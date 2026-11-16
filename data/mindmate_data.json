@@ -1,0 +1,14 @@
+{
+  "notes": [],
+  "tasks": [],
+  "flashcards": [
+    {
+      "id": "3b42e4796e",
+      "question": "what is jdbc ?",
+      "answer": "JDBC stands for Java Database Connectivity.\n\nIt is a Java API (Application Programming Interface) that allows a Java program to connect with a database, execute SQL queries, and retrieve or modify data.\n\nIn simple words:\n\nJDBC acts as a bridge between Java and a database."
+    }
+  ],
+  "stats": {
+    "pomodoros": 0
+  }
+}
