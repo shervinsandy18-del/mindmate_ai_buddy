@@ -1,4 +1,4 @@
-# MindMate – Smart Study Companion
+# MindMate AI Buddy – Smart Study Companion
 
 A dark-themed desktop study app built with **Python + Tkinter** (standard library only, no extra installs).
 
