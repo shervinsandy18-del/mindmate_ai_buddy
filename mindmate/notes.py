@@ -16,6 +16,7 @@ class NotesPage(Page):
         left = Card(body)
         left.grid(row=0, column=0, sticky="ns", padx=(0, 14))
         self.search = make_entry(left)
+        tk.Label(left, text="Saved Notes", bg=CARD, fg=TEXT, font=font(13, "bold")).pack(anchor="w", padx=14, pady=(14, 0))
         self.search.pack(fill="x", padx=12, pady=(12, 8), ipady=5)
         self.search.bind("<KeyRelease>", lambda e: self.refresh())
         self.listbox = tk.Listbox(left, bg=CARD, fg=TEXT, width=28, relief="flat", font=font(11),
@@ -23,7 +24,8 @@ class NotesPage(Page):
                                   highlightthickness=0, exportselection=False)
         self.listbox.pack(fill="both", expand=True, padx=12, pady=(0, 8))
         self.listbox.bind("<<ListboxSelect>>", self._select)
-        RoundedButton(left, "+ New Note", self.new, width=200).pack(padx=12, pady=(0, 12))
+        RoundedButton(left, "+ New Note", self.new, width=200).pack(padx=12, pady=(0, 10))
+        RoundedButton(left, "Review Saved Notes", self.review_saved, width=200).pack(padx=12, pady=(0, 12))
 
         right = Card(body)
         right.grid(row=0, column=1, sticky="nsew")
@@ -34,19 +36,39 @@ class NotesPage(Page):
         self.cat = make_entry(right)
         self.cat.pack(fill="x", padx=16, ipady=6)
         tk.Label(right, text="Content", bg=CARD, fg=MUTED, font=font(10)).pack(anchor="w", padx=16, pady=(10, 2))
-        self.content = make_text(right)
-        self.content.pack(fill="both", expand=True, padx=16)
         bar = tk.Frame(right, bg=CARD)
-        bar.pack(fill="x", padx=16, pady=14)
+        bar.pack(side="bottom", fill="x", padx=16, pady=14)
         RoundedButton(bar, "Save Note", self.save, bg=SUCCESS, hover="#5BDDB0", fg="#10131A").pack(side="left")
         RoundedButton(bar, "Delete", self.delete, bg=DANGER, hover="#FF8496").pack(side="left", padx=10)
         self.status = tk.Label(bar, bg=CARD, fg=MUTED, font=font(9))
         self.status.pack(side="right")
+        self.content = make_text(right, height=6)
+        self.content.pack(fill="both", expand=True, padx=16)
+        self.content.bind("<Control-s>", lambda e: (self.save(), "break")[1])
+        self.refresh()
+
+    @staticmethod
+    def _normalise_note(note):
+        return {
+            "id": note.get("id"),
+            "title": str(note.get("title") or ""),
+            "category": str(note.get("category") or ""),
+            "content": str(note.get("content") or ""),
+            "updated": str(note.get("updated") or ""),
+        }
+
+    def review_saved(self):
+        self.search.delete(0, "end")
+        self.refresh()
+        if self.view:
+            self.listbox.selection_clear(0, "end")
+            self.listbox.selection_set(0)
+            self._select(None)
 
     def refresh(self):
         q = self.search.get().strip().lower()
-        self.view = [n for n in reversed(self.db.all("notes"))
-                     if q in (n["title"] + n.get("category", "") + n["content"]).lower()]
+        notes = [self._normalise_note(n) for n in reversed(self.db.all("notes"))]
+        self.view = [n for n in notes if q in (n["title"] + n["category"] + n["content"]).lower()]
         self.listbox.delete(0, "end")
         for n in self.view:
             tag = f"  [{n['category']}]" if n.get("category") else ""
@@ -55,17 +77,20 @@ class NotesPage(Page):
             for i, n in enumerate(self.view):
                 if n["id"] == self.current:
                     self.listbox.selection_set(i)
+        elif self.view:
+            self.listbox.selection_set(0)
+            self._select(None)
 
     def _select(self, _):
         sel = self.listbox.curselection()
         if not sel:
             return
-        n = self.view[sel[0]]
+        n = self._normalise_note(self.view[sel[0]])
         self.current = n["id"]
         self.title.delete(0, "end"); self.title.insert(0, n["title"])
         self.cat.delete(0, "end"); self.cat.insert(0, n.get("category", ""))
         self.content.delete("1.0", "end"); self.content.insert("1.0", n["content"])
-        self.status.config(text="Last updated " + n.get("updated", ""))
+        self.status.config(text="Last updated " + (n.get("updated") or "Unknown"))
 
     def new(self):
         self.current = None
